@@ -124,14 +124,12 @@ int main(int argc, char **argv) {
         size_t len = n;
 
         while(len > 0) {
-            size_t write_n;
-
-            if ((write_n = write(STDOUT_FILENO, buf, len)) < 0) {
+            if ((n = write(STDOUT_FILENO, buf, len)) < 0) {
                 fputs("error writing to stdout", stderr);
                 exit(1);
             }
 
-            len -= write_n;
+            len -= n;
         }
     }
 
