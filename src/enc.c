@@ -1,5 +1,5 @@
 #include "enc.h"
-#include "gimli.h"
+#include "monocypher.h"
 
 static void hex_to_bin(unsigned char *out, char *in) {
     size_t len = strlen(in);
@@ -53,56 +53,38 @@ static int is_hex(char *in) {
 }
 
 static void usage() {
-    puts("sobfs 32-byte-key-in-hex [16-byte-iv-in-hex]");
+    puts("sobfs 32-byte-key-in-hex");
     exit(254);
 }
 
 int main(int argc, char **argv) {
     unsigned char key[32] = {0};
-    unsigned char iv[16] = {0};
+    unsigned char nonce[12] = {0};
 
     if (argc < 2) {
         usage();
     }
 
     if (strlen(argv[1]) != 64) {
-        fputs("key size is invalid", stderr);
+        fputs("key size is invalid (needs to be 32 bytes / 64 hex digits)\n", stderr);
         exit(1);
     }
 
     if (!is_hex(argv[1])) {
-        fputs("key is not a valid hexadecimal string", stderr);
+        fputs("key is not a valid hexadecimal string\n", stderr);
         exit(1);
     }
 
     hex_to_bin(key, argv[1]);
 
-    if (argc > 2) {
-      if (strlen(argv[2]) != 32) {
-          fputs("iv size is invalid", stderr);
-          exit(1);
-      }
-
-      if (!is_hex(argv[2])) {
-          fputs("iv is not a valid hexadecimal string", stderr);
-          exit(1);
-      }
-
-      hex_to_bin(iv, argv[2]);
-    }
-
-    uint32_t state[12];
-    memcpy(&state[0], key, 32);
-    memcpy(&state[8], iv, 16);
-
-    gimli(state);
-
-    char buf[4096] = {0};
-    size_t n;
-    size_t state_n = 0;
-    unsigned char *state_buf = (unsigned char *) state;
+    unsigned char pad[4096];
+    uint32_t ctr = 0;
+    size_t pad_used = sizeof(pad);
+    char buf[4096];
 
     while (1) {
+        size_t n;
+
         if ((n = read(STDIN_FILENO, buf, sizeof(buf))) < 0) {
             fputs("error reading from stdin\n", stderr);
             exit(1);
@@ -112,13 +94,14 @@ int main(int argc, char **argv) {
             break;
         }
 
-        for (int i = 0; i < n; i++, state_n++) {
-            if (state_n == 48) {
-                state_n = 0;
-                gimli(state);
+        for (int i = 0; i < n; i++) {
+            if (pad_used == sizeof(pad)) {
+                pad_used = 0;
+                memset(pad, 0, sizeof(pad));
+                ctr = crypto_ietf_chacha20_ctr(pad, pad, sizeof(pad), key, nonce, ctr);
             }
 
-            buf[i] ^=  state_buf[state_n];
+            buf[i] ^=  pad[pad_used++];
         }
 
         size_t len = n;

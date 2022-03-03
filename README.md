@@ -6,7 +6,7 @@ sobfs is inspired by [this write-up](https://gist.github.com/gmurdocca/88857b58d
 
 Since it is trivial for an IDS to blacklist the 26 possible banners using rot encryption, I looked for a more robust way to defeat IDS middleboxes. Using symmetric-key encryption on a stream fits the bill. Rejecting all possible banner cominbations that can be encrypted would be infeasible and performance degrading for an IDS.
 
-The symmetric-key primitive used is the [gimli](https://gimli.cr.yp.to) lightweight cipher. The C implementation used is copied from Taylor R. Campbell and can be originally [found here](https://mumble.net/~campbell/tmp/gimli.c). The permutation is used as essentially a 256-bit stream cipher.
+The symmetric-key encryption used is the ChaCha20 stream cipher designed by Daniel J. Bernstein. The C implementation used is from [Monocypher](https://monocypher.org/) by Loup Vaillant.
 
 # How to use
 
@@ -102,6 +102,5 @@ ssh user@localhost -p 10000
 
 # Limitations
 
-* Currently both client and server have to use the same endianness. Adding endian conversion routines is planned.
 * Performance is reduced by an order of magnitude when doing high-throughput connections such as scp for a large file transfer.
 * Unsure if this is a limitation, but this hasn't been tested with UDP sockets.
