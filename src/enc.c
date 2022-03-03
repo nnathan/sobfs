@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
     while (1) {
         if ((n = read(STDIN_FILENO, buf, sizeof(buf))) < 0) {
-            fputs("error reading from stdin", stderr);
+            fputs("error reading from stdin\n", stderr);
             exit(1);
         }
 
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
 
         while(len > 0) {
             if ((n = write(STDOUT_FILENO, buf, len)) < 0) {
-                fputs("error writing to stdout", stderr);
+                fputs("error writing to stdout\n", stderr);
                 exit(1);
             }
 
