@@ -1,39 +1,5 @@
 #include "enc.h"
-#include "monocypher.h"
-
-static void hex_to_bin(unsigned char *out, char *in) {
-    size_t len = strlen(in);
-
-    if (len % 2 != 0) {
-        return;
-    }
-
-    for (int i = 0; i < len; i += 2) {
-        unsigned char l, r;
-        l = tolower(in[i]);
-        r = tolower(in[i+1]);
-
-        if (l >= 'a' && l <= 'f') {
-            l -= 'a';
-            l += 10;
-        }
-
-        if (l >= '0' && l <= '9') {
-            l -= '0';
-        }
-
-        if (r >= 'a' && r <= 'f') {
-            r -= 'a';
-            r += 10;
-        }
-
-        if (r >= '0' && r <= '9') {
-            r -= '0';
-        }
-
-        out[i/2] = (l << 4) | r;
-    }
-}
+#include "hydrogen.h"
 
 static int is_hex(char *in) {
     for (int i = 0; i < strlen(in); i++) {
@@ -58,15 +24,16 @@ static void usage() {
 }
 
 int main(int argc, char **argv) {
-    unsigned char key[32] = {0};
-    unsigned char nonce[12] = {0};
+    unsigned char key[hydro_random_SEEDBYTES] = {0};
 
     if (argc < 2) {
         usage();
     }
 
-    if (strlen(argv[1]) != 64) {
-        fputs("key size is invalid (needs to be 32 bytes / 64 hex digits)\n", stderr);
+    if (strlen(argv[1]) != hydro_random_SEEDBYTES*2) {
+        fprintf(stderr,
+                "key size is invalid (needs to be %d bytes / %d hex digits)\n",
+                hydro_random_SEEDBYTES, hydro_random_SEEDBYTES * 2);
         exit(1);
     }
 
@@ -75,11 +42,13 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    hex_to_bin(key, argv[1]);
+    int ret = hydro_hex2bin(key, sizeof(key), argv[1],
+                            hydro_random_SEEDBYTES * 2, NULL, NULL);
 
-    unsigned char pad[4096];
-    uint32_t ctr = 0;
-    size_t pad_used = sizeof(pad);
+    unsigned char pad_with_key[4096 + hydro_random_SEEDBYTES];
+    unsigned char *pad = pad_with_key + hydro_random_SEEDBYTES;
+    const size_t max_pad = sizeof(pad_with_key) - hydro_random_SEEDBYTES;
+    size_t pad_used = max_pad;
     char buf[4096];
 
     while (1) {
@@ -95,10 +64,10 @@ int main(int argc, char **argv) {
         }
 
         for (int i = 0; i < n; i++) {
-            if (pad_used == sizeof(pad)) {
+            if (pad_used == max_pad) {
                 pad_used = 0;
-                memset(pad, 0, sizeof(pad));
-                ctr = crypto_ietf_chacha20_ctr(pad, pad, sizeof(pad), key, nonce, ctr);
+                hydro_random_buf_deterministic(pad_with_key, sizeof(pad_with_key), key);
+                memcpy(key, pad_with_key, hydro_random_SEEDBYTES);
             }
 
             buf[i] ^=  pad[pad_used++];

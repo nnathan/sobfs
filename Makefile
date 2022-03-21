@@ -1,7 +1,11 @@
 all: sobfs
 
-sobfs: Makefile src/enc.c include/monocypher.h src/monocypher.c
-	$(CC) -std=c99 -Iinclude -o $@ src/enc.c src/monocypher.c
+libhydrogen/libhydrogen.a: libhydrogen/hydrogen.h libhydrogen/hydrogen.c
+	cd libhydrogen && make
+
+sobfs: Makefile src/enc.c libhydrogen/libhydrogen.a
+	$(CC) -O3 -std=c99 -Iinclude -Ilibhydrogen -o $@ src/enc.c libhydrogen/libhydrogen.a
 
 clean:
 	rm -f sobfs
+	cd libhydrogen && make clean
