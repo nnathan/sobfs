@@ -2,7 +2,7 @@
 
 sobfs is an obfuscator using symmetric-key cryptography.
 
-sobfs is inspired by [this write-up](https://gist.github.com/gmurdocca/88857b58dc4668d88b0d0fae6ebf8b64) on how an IDS middlebox was defeated using rot-13 encryption.
+sobfs is inspired by [this write-up](https://gist.github.com/gmurdocca/88857b58dc4668d88b0d0fae6ebf8b64) on how an IDS middlebox was defeated using rot-13 encryption. The aim of sobfs is for testing and improving the security of IDS middleboxes.
 
 Since it is trivial for an IDS to blacklist the 26 possible banners using rot encryption, I looked for a more robust way to defeat IDS middleboxes. Using symmetric-key encryption on a stream fits the bill. Rejecting all possible banner cominbations that can be encrypted would be infeasible and performance degrading for an IDS.
 
@@ -100,7 +100,8 @@ On the client to connect to the server over 8090/tcp with the comms obfuscated b
 ssh user@localhost -p 10000
 ```
 
-# Limitations
+# Limitations/Issues
 
 * Performance is reduced by an order of magnitude when doing high-throughput connections such as scp for a large file transfer.
+* Due to the streaming nature of sobfs it appeared difficult to implement authenticated encryption which would expand the size of ciphertext. There are some ways to implement this using a lightweight framing format, see [spiped](https://www.tarsnap.com/spiped.html) for inspiration.
 * Unsure if this is a limitation, but this hasn't been tested with UDP sockets.
